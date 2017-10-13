@@ -60,6 +60,7 @@ tick-1sec
 
 END
 {
+  printf("Final:\n");
   printa("%12d %5d %-7s = %@12d\n", @all);
   printf("\n");
 }
