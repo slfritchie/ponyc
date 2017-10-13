@@ -23,13 +23,13 @@ provider pony {
   probe actor__msg__run(uintptr_t scheduler, uintptr_t actor, uint32_t id);
 
   /**
-   * Fired when a message is being send
+   * Fired when a message is being sent to an actor
    * @param scheduler is the active scheduler
    * @param id the message id
    * @param actor_from is the sending actor
    * @param actor_to is the receiving actor
    */
-  probe msg__push(uintptr_t scheduler, uint32_t id, uintptr_t actor_from, uintptr_t actor_to);
+  probe actor__msg__push(uintptr_t scheduler, uint32_t id, uintptr_t actor_from, uintptr_t actor_to);
 
   /**
    * Fired when a message is being run by an actor
@@ -37,7 +37,24 @@ provider pony {
    * @param id the message id
    * @param actor_to is the receiving actor
    */
-  probe msg__pop(uintptr_t scheduler, uint32_t id, uintptr_t actor);
+  probe actor__msg__pop(uintptr_t scheduler, uint32_t id, uintptr_t actor);
+
+  /**
+   * Fired when a message is being sent to an thread
+   * @param scheduler is the active scheduler
+   * @param id the message id
+   * @param thread_from is the sending thread
+   * @param thread_to is the receiving thread
+   */
+  probe thread__msg__push(uint32_t id, uintptr_t thread_from, uintptr_t thread_to);
+
+  /**
+   * Fired when a message is being run by an thread
+   * @param scheduler is the active scheduler
+   * @param id the message id
+   * @param thread_to is the receiving thread
+   */
+  probe thread__msg__pop(uint32_t id, uintptr_t thread);
 
   /**
    * Fired when actor is scheduled

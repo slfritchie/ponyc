@@ -57,21 +57,35 @@ void ponyint_messageq_destroy(messageq_t* q)
   q->tail = NULL;
 }
 
-bool ponyint_messageq_push(uintptr_t sched,
+/* SLF: review note: I'm using uintptr_t here because using scheduler_t
+ *                   and pony_actor_t causes header file dependency hell.
+ *                   That means that each caller needs to cast the first 2
+ *                   args which is also ugly, but I've created the
+ *                   PONYINT_MESSAGEQ_PUSH(), etc. macros to hide the casts.
+ */
+
+bool ponyint_messageq_push(int caller_type, uintptr_t sched,
        uintptr_t from_actor, uintptr_t to_actor,
        messageq_t* q, pony_msg_t* first, pony_msg_t* last)
 {
-  if(DTRACE_ENABLED(MSG_PUSH))
+  if(caller_type == Q_TYPE_ACTOR ?
+       DTRACE_ENABLED(ACTOR_MSG_PUSH) : DTRACE_ENABLED(THREAD_MSG_PUSH) )
   {
     pony_msg_t* m = first;
 
     while(m != last)
     {
-      DTRACE4(MSG_PUSH, sched, m->id, from_actor, to_actor);
+      if(caller_type == Q_TYPE_ACTOR)
+        DTRACE4(ACTOR_MSG_PUSH, sched, m->id, from_actor, to_actor);
+      else    
+        DTRACE3(THREAD_MSG_PUSH, m->id, from_actor, to_actor);
       m = atomic_load_explicit(&m->next, memory_order_relaxed);
     }
 
-    DTRACE4(MSG_PUSH, sched, last->id, from_actor, to_actor);
+    if(caller_type == Q_TYPE_ACTOR)
+      DTRACE4(ACTOR_MSG_PUSH, sched, last->id, from_actor, to_actor);
+    else
+      DTRACE(THREAD_MSG_PUSH, last->id, from_actor, to_actor);
   }
 
   atomic_store_explicit(&last->next, NULL, memory_order_relaxed);
@@ -99,21 +113,26 @@ bool ponyint_messageq_push(uintptr_t sched,
   return was_empty;
 }
 
-bool ponyint_messageq_push_single(uintptr_t sched,
+bool ponyint_messageq_push_single(int caller_type, uintptr_t sched,
        uintptr_t from_actor, uintptr_t to_actor,
        messageq_t* q, pony_msg_t* first, pony_msg_t* last)
 {
-  if(DTRACE_ENABLED(MSG_PUSH))
+  if(caller_type == Q_TYPE_ACTOR ?
+       DTRACE_ENABLED(ACTOR_MSG_PUSH) : DTRACE_ENABLED(THREAD_MSG_PUSH) )
   {
     pony_msg_t* m = first;
 
     while(m != last)
     {
-      DTRACE4(MSG_PUSH, sched, m->id, from_actor, to_actor);
+      caller_type == Q_TYPE_ACTOR ?
+        DTRACE4(ACTOR_MSG_PUSH, sched, m->id, from_actor, to_actor) :
+        DTRACE(THREAD_MSG_PUSH, m->id, from_actor, to_actor);
       m = atomic_load_explicit(&m->next, memory_order_relaxed);
     }
 
-    DTRACE4(MSG_PUSH, sched, last->id, from_actor, to_actor);
+    caller_type == Q_TYPE_ACTOR ?
+      DTRACE4(ACTOR_MSG_PUSH, sched, m->id, from_actor, to_actor) :
+      DTRACE(THREAD_MSG_PUSH, m->id, from_actor, to_actor);
   }
 
   atomic_store_explicit(&last->next, NULL, memory_order_relaxed);
@@ -135,22 +154,17 @@ bool ponyint_messageq_push_single(uintptr_t sched,
   return was_empty;
 }
 
-/* SLF: review note: I'm using uintptr_t here because using scheduler_t
- *                   and pony_actor_t causes header file dependency hell.
- *                   That means that each caller needs to cast the first 2
- *                   args which is also ugly, but I've created the
- *                   PONYINT_MESSAGEQ_POP() macro to hide the casts.
- */
-
-pony_msg_t* ponyint_messageq_pop(uintptr_t sched, uintptr_t actor,
-                                 messageq_t* q)
+pony_msg_t* ponyint_messageq_pop(int caller_type, uintptr_t sched,
+              uintptr_t actor, messageq_t* q)
 {
   pony_msg_t* tail = q->tail;
   pony_msg_t* next = atomic_load_explicit(&tail->next, memory_order_relaxed);
 
   if(next != NULL)
   {
-    DTRACE3(MSG_POP, (uintptr_t) sched, (uint32_t) next->id, (uintptr_t) actor);
+    caller_type == Q_TYPE_ACTOR ?
+      DTRACE3(ACTOR_MSG_POP, (uintptr_t) sched, (uint32_t) next->id, (uintptr_t) actor) :
+      DTRACE2(THREAD_MSG_POP, (uint32_t) next->id, (uintptr_t) actor);
     q->tail = next;
     atomic_thread_fence(memory_order_acquire);
 #ifdef USE_VALGRIND

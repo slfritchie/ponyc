@@ -72,7 +72,7 @@ static void send_msg(uint32_t from, uint32_t to, sched_msg_t msg, intptr_t arg)
     POOL_INDEX(sizeof(pony_msgi_t)), msg);
 
   m->i = arg;
-  PONYINT_MESSAGEQ_PUSH(0, from, to, &scheduler[to].mq, &m->msg, &m->msg);
+  THREAD_PONYINT_MESSAGEQ_PUSH(from, to, &scheduler[to].mq, &m->msg, &m->msg);
 }
 
 static void send_msg_single(uint32_t from, uint32_t to, sched_msg_t msg, intptr_t arg)
@@ -81,7 +81,7 @@ static void send_msg_single(uint32_t from, uint32_t to, sched_msg_t msg, intptr_
     POOL_INDEX(sizeof(pony_msgi_t)), msg);
 
   m->i = arg;
-  PONYINT_MESSAGEQ_PUSH_SINGLE(0, from, to, &scheduler[to].mq, &m->msg, &m->msg);
+  THREAD_PONYINT_MESSAGEQ_PUSH_SINGLE(from, to, &scheduler[to].mq, &m->msg, &m->msg);
 }
 
 static void send_msg_all(uint32_t from, sched_msg_t msg, intptr_t arg)
@@ -96,7 +96,7 @@ static void read_msg(scheduler_t* sched)
 {
   pony_msgi_t* m;
 
-  while((m = (pony_msgi_t*)PONYINT_MESSAGEQ_POP(0, sched->index, &sched->mq)) != NULL)
+  while((m = (pony_msgi_t*)THREAD_PONYINT_MESSAGEQ_POP(sched->index, &sched->mq)) != NULL)
   {
     switch(m->msg.id)
     {
@@ -369,7 +369,7 @@ static void ponyint_sched_shutdown()
 
   for(uint32_t i = 0; i < scheduler_count; i++)
   {
-    while(PONYINT_MESSAGEQ_POP(0, i, &scheduler[i].mq) != NULL) { ; }
+    while(THREAD_PONYINT_MESSAGEQ_POP(i, &scheduler[i].mq) != NULL) { ; }
     ponyint_messageq_destroy(&scheduler[i].mq);
     ponyint_mpmcq_destroy(&scheduler[i].q);
   }
