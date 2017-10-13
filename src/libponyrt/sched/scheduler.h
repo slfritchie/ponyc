@@ -11,6 +11,9 @@
 #include "../pony.h"
 #include <platform.h>
 
+#define SCHEDULER_SPECIAL_KQUEUE 1
+#define SCHEDULER_SPECIAL_CYCLE  2
+
 PONY_EXTERN_C_BEGIN
 
 typedef void (*trace_object_fn)(pony_ctx_t* ctx, void* p, pony_type_t* t,
@@ -41,6 +44,7 @@ struct scheduler_t
 {
   // These are rarely changed.
   pony_thread_id_t tid;
+  int index;
   uint32_t cpu;
   uint32_t node;
   bool terminate;

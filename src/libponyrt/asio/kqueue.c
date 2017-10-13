@@ -5,6 +5,7 @@
 #include "../actor/messageq.h"
 #include "../mem/pool.h"
 #include "../sched/cpu.h"
+#include "../sched/scheduler.h"
 #include "ponyassert.h"
 #include <sys/event.h>
 #include <string.h>
@@ -61,7 +62,8 @@ static void handle_queue(asio_backend_t* b)
 {
   asio_msg_t* msg;
 
-  while((msg = (asio_msg_t*)ponyint_messageq_pop(&b->q)) != NULL)
+  while((msg = (asio_msg_t*)PONYINT_MESSAGEQ_POP(SCHEDULER_SPECIAL_KQUEUE,
+                              SCHEDULER_SPECIAL_KQUEUE, &b->q)) != NULL)
     pony_asio_event_send(msg->event, ASIO_DISPOSABLE, 0);
 }
 
@@ -358,7 +360,8 @@ PONY_API void pony_asio_event_unsubscribe(asio_event_t* ev)
     POOL_INDEX(sizeof(asio_msg_t)), 0);
   msg->event = ev;
   msg->flags = ASIO_DISPOSABLE;
-  ponyint_messageq_push(&b->q, (pony_msg_t*)msg, (pony_msg_t*)msg);
+  PONYINT_MESSAGEQ_PUSH(SCHEDULER_SPECIAL_KQUEUE, SCHEDULER_SPECIAL_KQUEUE, b,
+    &b->q, (pony_msg_t*)msg, (pony_msg_t*)msg);
 
   retry_loop(b);
 }

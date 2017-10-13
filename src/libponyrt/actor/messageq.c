@@ -4,6 +4,7 @@
 #include "../mem/pool.h"
 #include "ponyassert.h"
 #include <string.h>
+#include <dtrace.h>
 
 #ifdef USE_VALGRIND
 #include <valgrind/helgrind.h>
@@ -56,8 +57,23 @@ void ponyint_messageq_destroy(messageq_t* q)
   q->tail = NULL;
 }
 
-bool ponyint_messageq_push(messageq_t* q, pony_msg_t* first, pony_msg_t* last)
+bool ponyint_messageq_push(uintptr_t sched,
+       uintptr_t from_actor, uintptr_t to_actor,
+       messageq_t* q, pony_msg_t* first, pony_msg_t* last)
 {
+  if(DTRACE_ENABLED(MSG_PUSH))
+  {
+    pony_msg_t* m = first;
+
+    while(m != last)
+    {
+      DTRACE4(MSG_PUSH, sched, m->id, from_actor, to_actor);
+      m = atomic_load_explicit(&m->next, memory_order_relaxed);
+    }
+
+    DTRACE4(MSG_PUSH, sched, last->id, from_actor, to_actor);
+  }
+
   atomic_store_explicit(&last->next, NULL, memory_order_relaxed);
 
   // Without that fence, the store to last->next above could be reordered after
@@ -66,7 +82,6 @@ bool ponyint_messageq_push(messageq_t* q, pony_msg_t* first, pony_msg_t* last)
   // empty.
   // Also synchronise with the pop on prev->next.
   atomic_thread_fence(memory_order_release);
-
   pony_msg_t* prev = atomic_exchange_explicit(&q->head, last,
     memory_order_relaxed);
 
@@ -84,9 +99,23 @@ bool ponyint_messageq_push(messageq_t* q, pony_msg_t* first, pony_msg_t* last)
   return was_empty;
 }
 
-bool ponyint_messageq_push_single(messageq_t* q, pony_msg_t* first,
-  pony_msg_t* last)
+bool ponyint_messageq_push_single(uintptr_t sched,
+       uintptr_t from_actor, uintptr_t to_actor,
+       messageq_t* q, pony_msg_t* first, pony_msg_t* last)
 {
+  if(DTRACE_ENABLED(MSG_PUSH))
+  {
+    pony_msg_t* m = first;
+
+    while(m != last)
+    {
+      DTRACE4(MSG_PUSH, sched, m->id, from_actor, to_actor);
+      m = atomic_load_explicit(&m->next, memory_order_relaxed);
+    }
+
+    DTRACE4(MSG_PUSH, sched, last->id, from_actor, to_actor);
+  }
+
   atomic_store_explicit(&last->next, NULL, memory_order_relaxed);
 
   // If we have a single producer, the swap of the head need not be atomic RMW.
@@ -106,13 +135,22 @@ bool ponyint_messageq_push_single(messageq_t* q, pony_msg_t* first,
   return was_empty;
 }
 
-pony_msg_t* ponyint_messageq_pop(messageq_t* q)
+/* SLF: review note: I'm using uintptr_t here because using scheduler_t
+ *                   and pony_actor_t causes header file dependency hell.
+ *                   That means that each caller needs to cast the first 2
+ *                   args which is also ugly, but I've created the
+ *                   PONYINT_MESSAGEQ_POP() macro to hide the casts.
+ */
+
+pony_msg_t* ponyint_messageq_pop(uintptr_t sched, uintptr_t actor,
+                                 messageq_t* q)
 {
   pony_msg_t* tail = q->tail;
   pony_msg_t* next = atomic_load_explicit(&tail->next, memory_order_relaxed);
 
   if(next != NULL)
   {
+    DTRACE3(MSG_POP, (uintptr_t) sched, (uint32_t) next->id, (uintptr_t) actor);
     q->tail = next;
     atomic_thread_fence(memory_order_acquire);
 #ifdef USE_VALGRIND

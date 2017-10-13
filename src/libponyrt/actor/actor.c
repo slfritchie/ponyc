@@ -93,6 +93,7 @@ static bool well_formed_msg_chain(pony_msg_t* first, pony_msg_t* last)
 static bool handle_message(pony_ctx_t* ctx, pony_actor_t* actor,
   pony_msg_t* msg)
 {
+  DTRACE3(ACTOR_MSG_RUN, (uintptr_t)ctx->scheduler, (uintptr_t)actor, msg->id);
   switch(msg->id)
   {
     case ACTORMSG_ACQUIRE:
@@ -148,7 +149,6 @@ static bool handle_message(pony_ctx_t* ctx, pony_actor_t* actor,
         ponyint_cycle_unblock(ctx, actor);
       }
 
-      DTRACE3(ACTOR_MSG_RUN, (uintptr_t)ctx->scheduler, (uintptr_t)actor, msg->id);
       actor->type->dispatch(ctx, actor, msg);
       return true;
     }
@@ -204,7 +204,7 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
   // If we have been scheduled, the head will not be marked as empty.
   pony_msg_t* head = atomic_load_explicit(&actor->q.head, memory_order_relaxed);
 
-  while((msg = ponyint_messageq_pop(&actor->q)) != NULL)
+  while((msg = PONYINT_MESSAGEQ_POP(ctx->scheduler, ctx->current, &actor->q)) != NULL)
   {
     if(handle_message(ctx, actor, msg))
     {
@@ -416,7 +416,7 @@ PONY_API void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* first,
         (uintptr_t)ctx->current, (uintptr_t)to);
   }
 
-  if(ponyint_messageq_push(&to->q, first, last))
+  if(PONYINT_MESSAGEQ_PUSH(ctx->scheduler, ctx->current, to, &to->q, first, last))
   {
     if(!has_flag(to, FLAG_UNSCHEDULED))
       ponyint_sched_add(ctx, to);
@@ -446,7 +446,8 @@ PONY_API void pony_sendv_single(pony_ctx_t* ctx, pony_actor_t* to,
         (uintptr_t)ctx->current, (uintptr_t)to);
   }
 
-  if(ponyint_messageq_push_single(&to->q, first, last))
+  if(PONYINT_MESSAGEQ_PUSH_SINGLE(ctx->scheduler, ctx->current, to,
+       &to->q, first, last))
   {
     if(!has_flag(to, FLAG_UNSCHEDULED))
       ponyint_sched_add(ctx, to);
