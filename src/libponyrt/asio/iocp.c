@@ -48,7 +48,9 @@ static void send_request(asio_event_t* ev, int req)
     POOL_INDEX(sizeof(asio_msg_t)), 0);
   msg->event = ev;
   msg->flags = req;
-  ponyint_messageq_push(&b->q, (pony_msg_t*)msg, (pony_msg_t*)msg);
+
+  ponyint_thread_messageq_push(SPECIAL_THREADID_IOCP, SPECIAL_THREADID_IOCP,
+    &b->q, (pony_msg_t*)msg, (pony_msg_t*)msg);
 
   SetEvent(b->wakeup);
 }
@@ -126,7 +128,8 @@ DECLARE_THREAD_FN(ponyint_asio_backend_dispatch)
         // time we reach here.
         asio_msg_t* msg;
 
-        while((msg = (asio_msg_t*)ponyint_messageq_pop(&b->q)) != NULL)
+        while((msg = (asio_msg_t*)ponyint_thread_messageq_pop(
+          SPECIAL_THREADID_IOCP, &b->q)) != NULL)
         {
           asio_event_t* ev = msg->event;
 

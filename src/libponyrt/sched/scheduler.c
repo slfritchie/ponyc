@@ -18,11 +18,11 @@ static DECLARE_THREAD_FN(run_thread);
 
 typedef enum
 {
-  SCHED_BLOCK,
-  SCHED_UNBLOCK,
-  SCHED_CNF,
-  SCHED_ACK,
-  SCHED_TERMINATE
+  SCHED_BLOCK = 20,
+  SCHED_UNBLOCK = 21,
+  SCHED_CNF = 30,
+  SCHED_ACK = 31,
+  SCHED_TERMINATE = 40
 } sched_msg_t;
 
 // Scheduler global data.
@@ -66,37 +66,37 @@ static pony_actor_t* pop_global(scheduler_t* sched)
  * Sends a message to a thread.
  */
 
-static void send_msg(uint32_t to, sched_msg_t msg, intptr_t arg)
+static void send_msg(uint32_t from, uint32_t to, sched_msg_t msg, intptr_t arg)
 {
   pony_msgi_t* m = (pony_msgi_t*)pony_alloc_msg(
     POOL_INDEX(sizeof(pony_msgi_t)), msg);
 
   m->i = arg;
-  ponyint_messageq_push(&scheduler[to].mq, &m->msg, &m->msg);
+  ponyint_thread_messageq_push(from, to, &scheduler[to].mq, &m->msg, &m->msg);
 }
 
-static void send_msg_single(uint32_t to, sched_msg_t msg, intptr_t arg)
+static void send_msg_single(uint32_t from, uint32_t to, sched_msg_t msg, intptr_t arg)
 {
   pony_msgi_t* m = (pony_msgi_t*)pony_alloc_msg(
     POOL_INDEX(sizeof(pony_msgi_t)), msg);
 
   m->i = arg;
-  ponyint_messageq_push_single(&scheduler[to].mq, &m->msg, &m->msg);
+  ponyint_thread_messageq_push_single(from, to, &scheduler[to].mq, &m->msg, &m->msg);
 }
 
-static void send_msg_all(sched_msg_t msg, intptr_t arg)
+static void send_msg_all(uint32_t from, sched_msg_t msg, intptr_t arg)
 {
-  send_msg(0, msg, arg);
+  send_msg(from, 0, msg, arg);
 
   for(uint32_t i = 1; i < scheduler_count; i++)
-    send_msg_single(i, msg, arg);
+    send_msg_single(from, i, msg, arg);
 }
 
 static void read_msg(scheduler_t* sched)
 {
   pony_msgi_t* m;
 
-  while((m = (pony_msgi_t*)ponyint_messageq_pop(&sched->mq)) != NULL)
+  while((m = (pony_msgi_t*)ponyint_thread_messageq_pop(sched->index, &sched->mq)) != NULL)
   {
     switch(m->msg.id)
     {
@@ -108,7 +108,7 @@ static void read_msg(scheduler_t* sched)
           (sched->block_count == scheduler_count))
         {
           // If we think all threads are blocked, send CNF(token) to everyone.
-          send_msg_all(SCHED_CNF, sched->ack_token);
+          send_msg_all(sched->index, SCHED_CNF, sched->ack_token);
         }
         break;
       }
@@ -126,7 +126,7 @@ static void read_msg(scheduler_t* sched)
       case SCHED_CNF:
       {
         // Echo the token back as ACK(token).
-        send_msg(0, SCHED_ACK, m->i);
+        send_msg(sched->index, 0, SCHED_ACK, m->i);
         break;
       }
 
@@ -167,7 +167,7 @@ static bool quiescent(scheduler_t* sched, uint64_t tsc, uint64_t tsc2)
   {
     if(sched->asio_stopped)
     {
-      send_msg_all(SCHED_TERMINATE, 0);
+      send_msg_all(sched->index, SCHED_TERMINATE, 0);
 
       sched->ack_token++;
       sched->ack_count = 0;
@@ -177,7 +177,7 @@ static bool quiescent(scheduler_t* sched, uint64_t tsc, uint64_t tsc2)
       sched->ack_count = 0;
 
       // Run another CNF/ACK cycle.
-      send_msg_all(SCHED_CNF, sched->ack_token);
+      send_msg_all(sched->index, SCHED_CNF, sched->ack_token);
     }
   }
 
@@ -230,7 +230,7 @@ static scheduler_t* choose_victim(scheduler_t* sched)
  */
 static pony_actor_t* steal(scheduler_t* sched, pony_actor_t* prev)
 {
-  send_msg(0, SCHED_BLOCK, 0);
+  send_msg(sched->index, 0, SCHED_BLOCK, 0);
   uint64_t tsc = ponyint_cpu_tick();
   pony_actor_t* actor;
 
@@ -267,7 +267,7 @@ static pony_actor_t* steal(scheduler_t* sched, pony_actor_t* prev)
     }
   }
 
-  send_msg(0, SCHED_UNBLOCK, 0);
+  send_msg(sched->index, 0, SCHED_UNBLOCK, 0);
   return actor;
 }
 
@@ -369,7 +369,7 @@ static void ponyint_sched_shutdown()
 
   for(uint32_t i = 0; i < scheduler_count; i++)
   {
-    while(ponyint_messageq_pop(&scheduler[i].mq) != NULL);
+    while(ponyint_thread_messageq_pop(i, &scheduler[i].mq) != NULL) { ; }
     ponyint_messageq_destroy(&scheduler[i].mq);
     ponyint_mpmcq_destroy(&scheduler[i].q);
   }
@@ -404,6 +404,7 @@ pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield, bool nopin,
   {
     scheduler[i].ctx.scheduler = &scheduler[i];
     scheduler[i].last_victim = &scheduler[i];
+    scheduler[i].index = i;
     ponyint_messageq_init(&scheduler[i].mq);
     ponyint_mpmcq_init(&scheduler[i].q);
   }

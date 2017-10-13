@@ -204,7 +204,7 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
   // If we have been scheduled, the head will not be marked as empty.
   pony_msg_t* head = atomic_load_explicit(&actor->q.head, memory_order_relaxed);
 
-  while((msg = ponyint_messageq_pop(&actor->q)) != NULL)
+  while((msg = ponyint_actor_messageq_pop(ctx->scheduler, ctx->current, &actor->q)) != NULL)
   {
     if(handle_message(ctx, actor, msg))
     {
@@ -416,7 +416,8 @@ PONY_API void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* first,
         (uintptr_t)ctx->current, (uintptr_t)to);
   }
 
-  if(ponyint_messageq_push(&to->q, first, last))
+  if(ponyint_actor_messageq_push(ctx->scheduler, ctx->current, to,
+       &to->q, first, last))
   {
     if(!has_flag(to, FLAG_UNSCHEDULED))
       ponyint_sched_add(ctx, to);
@@ -446,7 +447,8 @@ PONY_API void pony_sendv_single(pony_ctx_t* ctx, pony_actor_t* to,
         (uintptr_t)ctx->current, (uintptr_t)to);
   }
 
-  if(ponyint_messageq_push_single(&to->q, first, last))
+  if(ponyint_actor_messageq_push_single(ctx->scheduler, ctx->current, to,
+       &to->q, first, last))
   {
     if(!has_flag(to, FLAG_UNSCHEDULED))
       ponyint_sched_add(ctx, to);
