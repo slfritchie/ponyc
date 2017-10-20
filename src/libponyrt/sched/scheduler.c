@@ -18,11 +18,11 @@ static DECLARE_THREAD_FN(run_thread);
 
 typedef enum
 {
-  SCHED_BLOCK,
-  SCHED_UNBLOCK,
-  SCHED_CNF,
-  SCHED_ACK,
-  SCHED_TERMINATE
+  SCHED_BLOCK = 80,
+  SCHED_UNBLOCK = 81,
+  SCHED_CNF = 82,
+  SCHED_ACK = 83,
+  SCHED_TERMINATE = 84
 } sched_msg_t;
 
 // Scheduler global data.

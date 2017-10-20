@@ -46,9 +46,12 @@ static void send_request(asio_event_t* ev, int req)
 
   asio_msg_t* msg = (asio_msg_t*)pony_alloc_msg(
     POOL_INDEX(sizeof(asio_msg_t)), 0);
+  msg->msg->id = -42; /* SLF magic */
   msg->event = ev;
   msg->flags = req;
-  ponyint_messageq_push(&b->q, (pony_msg_t*)msg, (pony_msg_t*)msg);
+
+  THREAD_PONYINT_MESSAGEQ_PUSH(SPECIAL_THREADID_DONTKNOW, &b->q,
+    (pony_msg_t*)msg, (pony_msg_t*)msg);
 
   SetEvent(b->wakeup);
 }
@@ -126,7 +129,8 @@ DECLARE_THREAD_FN(ponyint_asio_backend_dispatch)
         // time we reach here.
         asio_msg_t* msg;
 
-        while((msg = (asio_msg_t*)ponyint_messageq_pop(&b->q)) != NULL)
+        while((msg = (asio_msg_t*)THREAD_PONYINT_MESSAGEQ_POP(
+                                    SPECIAL_THREADID_DONTKNOW, &b->q)) != NULL)
         {
           asio_event_t* ev = msg->event;
 
