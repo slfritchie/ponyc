@@ -61,7 +61,13 @@ void ponyint_messageq_destroy(messageq_t* q)
  *                   and pony_actor_t causes header file dependency hell.
  *                   That means that each caller needs to cast the first 2
  *                   args which is also ugly, but I've created the
- *                   PONYINT_MESSAGEQ_PUSH(), etc. macros to hide the casts.
+ *                   ACTOR_MESSAGEQ_PUSH(), et al. macros to hide the casts.
+ */
+
+/*
+ * To avoid invisible message sending & receiving, these push & pop
+ * functions should not be used directly.  Please use the
+ * ACTOR_MESSAGEQ_PUSH, THREAD_MESSAGE_PUSH, et al. macros instead.
  */
 
 bool ponyint_messageq_push(int caller_type, uintptr_t sched,

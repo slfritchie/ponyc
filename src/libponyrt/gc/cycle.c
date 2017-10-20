@@ -681,7 +681,7 @@ static void final(pony_ctx_t* ctx, pony_actor_t* self)
 
   do
   {
-    while((msg = PONYINT_MESSAGEQ_POP(SPECIAL_THREADID_CYCLE,
+    while((msg = ACTOR_MESSAGEQ_POP(SPECIAL_THREADID_CYCLE,
                    SPECIAL_THREADID_CYCLE, &self->q)) != NULL)
     {
       if(msg->id == ACTORMSG_BLOCK)
