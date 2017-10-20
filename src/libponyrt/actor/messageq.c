@@ -96,6 +96,7 @@ bool ponyint_messageq_push(int caller_type, uintptr_t sched,
   // empty.
   // Also synchronise with the pop on prev->next.
   atomic_thread_fence(memory_order_release);
+
   pony_msg_t* prev = atomic_exchange_explicit(&q->head, last,
     memory_order_relaxed);
 
