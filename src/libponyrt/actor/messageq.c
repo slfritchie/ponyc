@@ -77,7 +77,7 @@ bool ponyint_messageq_push(int caller_type, uintptr_t sched,
     {
       if(caller_type == Q_TYPE_ACTOR)
         DTRACE4(ACTOR_MSG_PUSH, sched, m->id, from_actor, to_actor);
-      else    
+      else
         DTRACE3(THREAD_MSG_PUSH, m->id, from_actor, to_actor);
       m = atomic_load_explicit(&m->next, memory_order_relaxed);
     }
@@ -85,7 +85,7 @@ bool ponyint_messageq_push(int caller_type, uintptr_t sched,
     if(caller_type == Q_TYPE_ACTOR)
       DTRACE4(ACTOR_MSG_PUSH, sched, last->id, from_actor, to_actor);
     else
-      DTRACE(THREAD_MSG_PUSH, last->id, from_actor, to_actor);
+      DTRACE3(THREAD_MSG_PUSH, last->id, from_actor, to_actor);
   }
 
   atomic_store_explicit(&last->next, NULL, memory_order_relaxed);
@@ -124,15 +124,17 @@ bool ponyint_messageq_push_single(int caller_type, uintptr_t sched,
 
     while(m != last)
     {
-      caller_type == Q_TYPE_ACTOR ?
-        DTRACE4(ACTOR_MSG_PUSH, sched, m->id, from_actor, to_actor) :
-        DTRACE(THREAD_MSG_PUSH, m->id, from_actor, to_actor);
+      if(caller_type == Q_TYPE_ACTOR)
+        DTRACE4(ACTOR_MSG_PUSH, sched, m->id, from_actor, to_actor);
+      else
+        DTRACE3(THREAD_MSG_PUSH, m->id, from_actor, to_actor);
       m = atomic_load_explicit(&m->next, memory_order_relaxed);
     }
 
-    caller_type == Q_TYPE_ACTOR ?
-      DTRACE4(ACTOR_MSG_PUSH, sched, m->id, from_actor, to_actor) :
-      DTRACE(THREAD_MSG_PUSH, m->id, from_actor, to_actor);
+    if(caller_type == Q_TYPE_ACTOR)
+      DTRACE4(ACTOR_MSG_PUSH, sched, m->id, from_actor, to_actor);
+    else
+      DTRACE3(THREAD_MSG_PUSH, m->id, from_actor, to_actor);
   }
 
   atomic_store_explicit(&last->next, NULL, memory_order_relaxed);
@@ -162,8 +164,9 @@ pony_msg_t* ponyint_messageq_pop(int caller_type, uintptr_t sched,
 
   if(next != NULL)
   {
-    caller_type == Q_TYPE_ACTOR ?
-      DTRACE3(ACTOR_MSG_POP, (uintptr_t) sched, (uint32_t) next->id, (uintptr_t) actor) :
+    if(caller_type == Q_TYPE_ACTOR)
+      DTRACE3(ACTOR_MSG_POP, (uintptr_t) sched, (uint32_t) next->id, (uintptr_t) actor);
+    else
       DTRACE2(THREAD_MSG_POP, (uint32_t) next->id, (uintptr_t) actor);
     q->tail = next;
     atomic_thread_fence(memory_order_acquire);

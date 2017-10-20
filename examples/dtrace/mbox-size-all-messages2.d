@@ -30,7 +30,7 @@ BEGIN
   printf("\n");
 }
 
-pony$target:::msg-push
+pony$target:::actor-msg-push
 {
   this->scheduler = arg0;
   this->msg_id = arg1;
@@ -41,7 +41,7 @@ pony$target:::msg-push
   @all[this->actor_to, this->msg_id, "msg-in"] = count();
 }
 
-pony$target:::msg-pop
+pony$target:::actor-msg-pop
 {
   this->scheduler = arg0;
   this->msg_id = arg1;
