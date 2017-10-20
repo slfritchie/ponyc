@@ -37,7 +37,7 @@ static void send_request(asio_event_t* ev, int req)
 
   asio_msg_t* msg = (asio_msg_t*)pony_alloc_msg(
     POOL_INDEX(sizeof(asio_msg_t)), 0);
-  msg->msg->id = req;
+  msg->msg.id = req;
   msg->event = ev;
   msg->flags = req;
   THREAD_MESSAGEQ_PUSH(SPECIAL_THREADID_DONTKNOW,
