@@ -59,7 +59,7 @@ void ponyint_messageq_destroy(messageq_t* q)
 
 /* SLF: review note: I'm using uintptr_t here because using scheduler_t
  *                   and pony_actor_t causes header file dependency hell.
- *                   That means that each caller needs to cast the first 2
+ *                   That means that each caller needs to cast its pointer
  *                   args which is also ugly, but I've created the
  *                   ACTOR_MESSAGEQ_PUSH(), et al. macros to hide the casts.
  */

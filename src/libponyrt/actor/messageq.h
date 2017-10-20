@@ -15,7 +15,15 @@ typedef struct messageq_t
 #define Q_TYPE_THREAD 200
 #define Q_TYPE_ACTOR  201
 
-/* Hide the casting of arg #1 and #2 from calling code */
+/*
+ * Arbitrary constants to name thread or actor category for message
+ * queue operations.  Runtime code should not be calling the
+ * underlying ponyint_messageq_ functions directly.  Purposes:
+ * a). Encode the queue category into the function call,
+ * b). Avoid cluttering the runtime's code by hiding the casting of
+ *     various args to uintptr_t for DTrace probes' sake to.
+ */
+
 #define ACTOR_MESSAGEQ_PUSH(sched, from_actor, to_actor, q, first, last) \
     ponyint_messageq_push(Q_TYPE_ACTOR, (uintptr_t) (sched),            \
       (uintptr_t) (from_actor), (uintptr_t) (to_actor), (q), (first), (last))
@@ -32,6 +40,11 @@ typedef struct messageq_t
       (uintptr_t) (from_index), (uintptr_t) (to_index), (q), (first), (last))
 #define THREAD_MESSAGEQ_POP(index, q) \
     ponyint_messageq_pop(Q_TYPE_THREAD, 0, (uintptr_t) (index), (q))
+
+/*
+ * Arbitrary constants to name thread or actor category for message
+ * queue operations.
+ */
 
 void ponyint_messageq_init(messageq_t* q);
 
