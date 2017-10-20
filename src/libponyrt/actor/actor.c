@@ -93,7 +93,6 @@ static bool well_formed_msg_chain(pony_msg_t* first, pony_msg_t* last)
 static bool handle_message(pony_ctx_t* ctx, pony_actor_t* actor,
   pony_msg_t* msg)
 {
-  DTRACE3(ACTOR_MSG_RUN, (uintptr_t)ctx->scheduler, (uintptr_t)actor, msg->id);
   switch(msg->id)
   {
     case ACTORMSG_ACQUIRE:
@@ -149,6 +148,7 @@ static bool handle_message(pony_ctx_t* ctx, pony_actor_t* actor,
         ponyint_cycle_unblock(ctx, actor);
       }
 
+      DTRACE3(ACTOR_MSG_RUN, (uintptr_t)ctx->scheduler, (uintptr_t)actor, msg->id);
       actor->type->dispatch(ctx, actor, msg);
       return true;
     }
