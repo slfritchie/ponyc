@@ -14,7 +14,6 @@
 #define SPECIAL_THREADID_KQUEUE   -10
 #define SPECIAL_THREADID_IOCP     -11
 #define SPECIAL_THREADID_EPOLL    -12
-#define SPECIAL_THREADID_CYCLE    -13  /* SLF: Instead, special actor ID?? */
 
 PONY_EXTERN_C_BEGIN
 
