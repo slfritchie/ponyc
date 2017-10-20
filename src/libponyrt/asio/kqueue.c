@@ -64,7 +64,9 @@ static void handle_queue(asio_backend_t* b)
 
   while((msg = (asio_msg_t*)THREAD_MESSAGEQ_POP(
                               SPECIAL_THREADID_KQUEUE, &b->q)) != NULL)
+  {
     pony_asio_event_send(msg->event, ASIO_DISPOSABLE, 0);
+  }
 }
 
 static void retry_loop(asio_backend_t* b)
@@ -358,10 +360,10 @@ PONY_API void pony_asio_event_unsubscribe(asio_event_t* ev)
 
   asio_msg_t* msg = (asio_msg_t*)pony_alloc_msg(
     POOL_INDEX(sizeof(asio_msg_t)), 0);
-  msg->msg.id = -42;
+  msg->msg.id = 0;
   msg->event = ev;
   msg->flags = ASIO_DISPOSABLE;
-  THREAD_MESSAGEQ_PUSH(SPECIAL_THREADID_KQUEUE, b,
+  THREAD_MESSAGEQ_PUSH(SPECIAL_THREADID_KQUEUE, SPECIAL_THREADID_KQUEUE,
     &b->q, (pony_msg_t*)msg, (pony_msg_t*)msg);
 
   retry_loop(b);

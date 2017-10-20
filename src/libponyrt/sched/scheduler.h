@@ -11,9 +11,10 @@
 #include "../pony.h"
 #include <platform.h>
 
-#define SPECIAL_THREADID_KQUEUE -100
-#define SPECIAL_THREADID_CYCLE  -101  /* SLF: Instead, special actor ID?? */
-#define SPECIAL_THREADID_DONTKNOW -99 /* SLF: hack, replace me */
+#define SPECIAL_THREADID_KQUEUE   -10
+#define SPECIAL_THREADID_IOCP     -11
+#define SPECIAL_THREADID_EPOLL    -12
+#define SPECIAL_THREADID_CYCLE    -13  /* SLF: Instead, special actor ID?? */
 
 PONY_EXTERN_C_BEGIN
 
