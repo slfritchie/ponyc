@@ -67,7 +67,7 @@ void ponyint_messageq_destroy(messageq_t* q)
 /*
  * To avoid invisible message sending & receiving, these push & pop
  * functions should not be used directly.  Please use the
- * ACTOR_MESSAGEQ_PUSH, THREAD_MESSAGE_PUSH, et al. macros instead.
+ * ACTOR_MESSAGEQ_PUSH, THREAD_MESSAGEQ_PUSH, et al. macros instead.
  */
 
 bool ponyint_messageq_push(int caller_type, uintptr_t sched,

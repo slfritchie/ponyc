@@ -1,25 +1,12 @@
 #!/usr/bin/env dtrace -x aggsortkey -x aggsortkeypos=0 -q -s
 
-/*
- * TODO
- */
-
-/* TODO: delete? edit? */
-inline unsigned int UINT32_MAX = 4294967295;
-inline unsigned int ACTORMSG_APPLICATION_START = (UINT32_MAX - 7);  /* -8 */
-inline unsigned int ACTORMSG_BLOCK = (UINT32_MAX - 6);              /* -7 */
-inline unsigned int ACTORMSG_UNBLOCK = (UINT32_MAX - 5);            /* -6 */
-inline unsigned int ACTORMSG_ACQUIRE = (UINT32_MAX - 4);            /* -5 */
-inline unsigned int ACTORMSG_RELEASE = (UINT32_MAX - 3);            /* -4 */
-inline unsigned int ACTORMSG_CONF = (UINT32_MAX - 2);               /* -3 */
-inline unsigned int ACTORMSG_ACK = (UINT32_MAX - 1);                /* -2 */
-
-inline unsigned int SMALLEST_ACTORMSG = ACTORMSG_APPLICATION_START;
-
 BEGIN
 {
-  printf("Column headings:    thread #, msg id, msg-in|msg-out, =, count\n");
-  printf("Special thread #s: KQUEUE=-10, IOCP=-11, EPOLL=-12,\n");
+  printf("Column headings:    thread #, msg type, msg-in|msg-out, =, count\n");
+  printf("Special thread #s: KQUEUE = -10, IOCP = -11, EPOLL =- 12\n");
+  printf("Message types:     SCHED_BLOCK = 20, SCHED_UNBLOCK = 21,\n");
+  printf("Message types:     SCHED_CNF = 30, SCHED_ACK = 31,\n");
+  printf("Message types:     SCHED_TERMINATE = 40, OTHER = 0\n");
   printf("\n");
 }
 
