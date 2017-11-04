@@ -270,7 +270,7 @@ bool ponyint_actor_run(pony_ctx_t* ctx, pony_actor_t* actor, size_t batch)
   {
     // if we were overloaded and didn't process a full batch, set ourselves as no
     // longer overloaded.
-    ponyint_actor_unsetoverloaded(actor);
+    ponyint_actor_unsetoverloaded(ctx->scheduler->index, actor);
   }
 
   try_gc(ctx, actor);
@@ -481,7 +481,7 @@ PONY_API void pony_sendv(pony_ctx_t* ctx, pony_actor_t* to, pony_msg_t* first,
   if(has_app_msg)
     ponyint_maybe_mute(ctx, to);
 
-  if(ponyint_messageq_push(ctx->scheduler, ctx->current, to,
+  if(ponyint_actor_messageq_push(ctx->scheduler, ctx->current, to,
     &to->q, first, last))
   {
     if(!has_flag(to, FLAG_UNSCHEDULED) && !ponyint_is_muted(to))
@@ -519,7 +519,7 @@ PONY_API void pony_sendv_single(pony_ctx_t* ctx, pony_actor_t* to,
   if(has_app_msg)
     ponyint_maybe_mute(ctx, to);
 
-  if(ponyint_messageq_push_single(ctx->scheduler, ctx->current, to,
+  if(ponyint_actor_messageq_push_single(ctx->scheduler, ctx->current, to,
     &to->q, first, last))
   {
     if(!has_flag(to, FLAG_UNSCHEDULED) && !ponyint_is_muted(to))
@@ -700,13 +700,13 @@ bool ponyint_actor_overloaded(pony_actor_t* actor)
   return has_flag(actor, FLAG_OVERLOADED);
 }
 
-void ponyint_actor_unsetoverloaded(pony_actor_t* actor)
+void ponyint_actor_unsetoverloaded(uint32_t from, pony_actor_t* actor)
 {
   unset_flag(actor, FLAG_OVERLOADED);
   DTRACE1(ACTOR_OVERLOADED_CLEARED, (uintptr_t)actor);
   if (!has_flag(actor, FLAG_UNDER_PRESSURE)) {
     //printf("OVERLOAD OF %p cleared\n", actor);
-    ponyint_sched_start_global_unmute(actor);
+    ponyint_sched_start_global_unmute(from, actor);
   }
 }
 
@@ -723,7 +723,7 @@ PONY_API void pony_release_backpressure()
   unset_flag(ctx->current, FLAG_UNDER_PRESSURE);
   DTRACE1(ACTOR_PRESSURE_RELEASED, (uintptr_t)ctx->current);
   if (!has_flag(ctx->current, FLAG_OVERLOADED))
-      ponyint_sched_start_global_unmute(ctx->current);
+      ponyint_sched_start_global_unmute(ctx->scheduler->index, ctx->current);
 }
 
 bool ponyint_triggers_muting(pony_actor_t* actor)

@@ -89,7 +89,7 @@ static bool read_msg(scheduler_t* sched)
 
   bool run_queue_changed = false;
 
-  while((m = (pony_msgi_t*)ponyint_messageq_pop(sched->index, &sched->mq)) != NULL)
+  while((m = (pony_msgi_t*)ponyint_thread_messageq_pop(sched->index, &sched->mq)) != NULL)
   {
     switch(m->msg.id)
     {
@@ -278,7 +278,7 @@ static pony_actor_t* steal(scheduler_t* sched)
         {
           // Someone else stole from our newly unmuted actor. If we have no
           // more muted actors, we need to inform everyone that we are blocked
-          send_msg(0, SCHED_BLOCK, 0);
+          send_msg(sched->index, 0, SCHED_BLOCK, 0);
           block_sent = true;
         }
       }
@@ -560,9 +560,9 @@ void ponyint_sched_mute(pony_ctx_t* ctx, pony_actor_t* sender, pony_actor_t* rec
   }
 }
 
-void ponyint_sched_start_global_unmute(pony_actor_t* actor)
+void ponyint_sched_start_global_unmute(uint32_t from, pony_actor_t* actor)
 {
-  send_msg_all(SCHED_UNMUTE_ACTOR, (intptr_t)actor);
+  send_msg_all(from, SCHED_UNMUTE_ACTOR, (intptr_t)actor);
 }
 
 DECLARE_STACK(ponyint_actorstack, actorstack_t, pony_actor_t);
@@ -630,7 +630,7 @@ bool ponyint_sched_unmute_senders(pony_ctx_t* ctx, pony_actor_t* actor)
       //}
 
       //printf("%p unmuted in %p by %p\n", to_unmute, sched, actor);
-      ponyint_sched_start_global_unmute(to_unmute);
+      ponyint_sched_start_global_unmute(ctx->scheduler->index, to_unmute);
     }
   }
 
