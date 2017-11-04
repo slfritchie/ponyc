@@ -6,13 +6,18 @@ All notable changes to the Pony compiler and standard library will be documented
 
 ### Fixed
 
+- Garbage collect actors when --ponynoblock is in use ([PR #2307](https://github.com/ponylang/ponyc/pull/2307))
+- Fix incorrect kevent structure size ([PR #2312](https://github.com/ponylang/ponyc/pull/2312))
+- Fix possible repetition in Iter.flat_map ([PR #2304](https://github.com/ponylang/ponyc/pull/2304))
 
 ### Added
 
+- Add --ponyversion option to compiled binary ([PR #2318](https://github.com/ponylang/ponyc/pull/2318))
 - Implement RFC 47 (Serialise signature) ([PR #2272](https://github.com/ponylang/ponyc/pull/2272))
 
 ### Changed
 
+- Error on unreachable cases in match expressions and illegal as expressions. ([PR #2289](https://github.com/ponylang/ponyc/pull/2289))
 
 ## [0.20.0] - 2017-10-17
 
