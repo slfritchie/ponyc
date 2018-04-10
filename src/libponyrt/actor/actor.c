@@ -10,6 +10,7 @@
 #include <assert.h>
 #include <string.h>
 #include <dtrace.h>
+#include <stdio.h>
 
 #ifdef USE_VALGRIND
 #include <valgrind/helgrind.h>
@@ -721,6 +722,7 @@ void ponyint_actor_setoverloaded(pony_actor_t* actor)
   pony_assert(!ponyint_is_cycle(actor));
   set_flag(actor, FLAG_OVERLOADED);
   DTRACE1(ACTOR_OVERLOADED, (uintptr_t)actor);
+  printf("ACTOR: set overloaded %llx\n", (unsigned long long) actor);
 }
 
 bool ponyint_actor_overloaded(pony_actor_t* actor)
@@ -733,6 +735,7 @@ void ponyint_actor_unsetoverloaded(pony_actor_t* actor)
   pony_ctx_t* ctx = pony_ctx();
   unset_flag(actor, FLAG_OVERLOADED);
   DTRACE1(ACTOR_OVERLOADED_CLEARED, (uintptr_t)actor);
+  printf("ACTOR: clear overloaded %llx\n", (unsigned long long) actor);
   if (!has_flag(actor, FLAG_UNDER_PRESSURE))
   {
     ponyint_sched_start_global_unmute(ctx->scheduler->index, actor);
@@ -744,6 +747,7 @@ PONY_API void pony_apply_backpressure()
   pony_ctx_t* ctx = pony_ctx();
   set_flag(ctx->current, FLAG_UNDER_PRESSURE);
   DTRACE1(ACTOR_UNDER_PRESSURE, (uintptr_t)ctx->current);
+  printf("ACTOR: set backpressure %llx\n", (unsigned long long) ctx->current);
 }
 
 PONY_API void pony_release_backpressure()
@@ -751,8 +755,14 @@ PONY_API void pony_release_backpressure()
   pony_ctx_t* ctx = pony_ctx();
   unset_flag(ctx->current, FLAG_UNDER_PRESSURE);
   DTRACE1(ACTOR_PRESSURE_RELEASED, (uintptr_t)ctx->current);
+  printf("ACTOR: clear backpressure %llx\n", (unsigned long long) ctx->current);
   if (!has_flag(ctx->current, FLAG_OVERLOADED))
     ponyint_sched_start_global_unmute(ctx->scheduler->index, ctx->current);
+}
+
+PONY_API pony_actor_t* pony_whoami()
+{
+  return pony_ctx()->current;
 }
 
 bool ponyint_triggers_muting(pony_actor_t* actor)
@@ -804,12 +814,13 @@ void ponyint_mute_actor(pony_actor_t* actor)
    pony_assert(is_muted == 0);
    is_muted++;
    atomic_store_explicit(&actor->is_muted, is_muted, memory_order_relaxed);
-
+   printf("ACTOR: set muted %llx is_muted %d\n", (unsigned long long) actor, is_muted);
 }
 
 void ponyint_unmute_actor(pony_actor_t* actor)
 {
   uint8_t is_muted = atomic_fetch_sub_explicit(&actor->is_muted, 1, memory_order_relaxed);
   pony_assert(is_muted == 1);
+  printf("ACTOR: clear muted %llx is_muted %d\n", (unsigned long long) actor, is_muted);
   (void)is_muted;
 }
