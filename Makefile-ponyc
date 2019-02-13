@@ -835,7 +835,12 @@ else
 $($(1))/$(1): $(depends) $(ofiles)
 	@mkdir -p $$(dir $$@)
 	@echo 'Linking $(1)'
+    ifneq (,$(DTRACE))
+	$(SILENT)$(DTRACE) -G -s $(PONY_SOURCE_DIR)/common/dtrace_probes.d -o $(PONY_BUILD_DIR)/dtrace_probes.o
+	$(SILENT)$(linker) -o $$@ $(ofiles) $(PONY_BUILD_DIR)/dtrace_probes.o $(linkcmd)
+    else
 	$(SILENT)$(linker) -o $$@ $(ofiles) $(linkcmd)
+    endif
 $(1): $($(1))/$(1)
 endif
 
